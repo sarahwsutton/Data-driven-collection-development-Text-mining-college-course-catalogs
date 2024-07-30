@@ -1,0 +1,36 @@
+---
+title: "Course Code, Title, and Descriptions"
+output: html_notebook
+---
+
+
+```{r}
+library(stringr)
+library(readr)
+```
+#Get file
+```{r}
+Sys.setlocale(locale = "en_BE.UTF-8") #to ensure correct encoding
+coursecodetitlepattern <- ">[A-Z][A-Z] [0-9][0-9][0-9]\\..*?\\.>" #this is the regex pattern that identifies the course codes
+string <- read_file("G:/My Drive/861 Introduction to Data Science For Libraries/Course Catalog Data/ESU 2019-2020.txt") #read_file preserves UTF-8 encoding
+
+```
+#Get course code + title
+```{r}
+courseextract <- str_extract_all(string, coursecodetitlepattern) #creates a string of just the course code, title, and number
+codeandtitle <-data.frame(ct = unlist(courseextract, use.names=FALSE)) #puts it in a data frame for export
+readr::write_excel_csv(codeandtitle, "codeandtitle.csv") #save to .csv, using readr preserves UTF-8 encoding
+```
+#Get course description
+```{r}
+split <- str_split(string, coursecodetitlepattern) #this is breaking apart the text by the same pattern
+coursedesc <- data.frame(description = unlist(split, use.names=FALSE)) #data frame for export
+readr::write_excel_csv(coursedesc, "coursedesc.csv") #save to .csv
+```
+
+#Ignore
+```{r}
+#extra steps for 2014-2015 just to remove page numbers,do not use for other years
+string <- str_remove_all(string,">[0-9][0-9]>")
+string <- str_remove_all(string, ">[0-9][0-9][0-9]")
+```

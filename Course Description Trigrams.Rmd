@@ -1,0 +1,68 @@
+---
+title: "Course Description Trigrams"
+output: html_notebook
+---
+
+
+
+```{r}
+library(dplyr)
+library(tidytext)
+library(tidyr)
+library(readr)
+```
+#Pulling in course data from downloaded file and ensuring UTF-8 Encoding
+```{r}
+Sys.setlocale(locale = "en_BE.UTF-8")
+df <- read_csv("2013-2024coursedata.csv", col_types = cols(.default = "c"))
+
+```
+#Creating desired subset by discipline
+```{r}
+#entire department, in this case sociology
+deponly <- subset(df, Department =="SO")
+depdesc <- select(deponly,Description, Year)
+#can save a file for that entire discipline for further analysis if needed/ write.csv(soconly, "soconly.csv", fileEncoding = "UTF-8")
+```
+#Making the trigrams
+```{r}
+deptrigrams <- depdesc %>%
+  unnest_tokens(trigram, Description, token="ngrams", n=3)
+```
+#Filtering stopwords
+```{r}
+#the custom stop word list will change for each domain, an external .txt file can be saved and imported with read.table
+customstopwords <- c("prerequisite", "consent", "instructor", "prerequisites", "hour", "hours", "topic", "topics", "including", "credit", "credits", "e.g.","requisites", "e.g", "so", "hrs","completes", "include", "includes", "i.e", "offered", "approval", "senior", "enrollment", "practical","sociology", "basic", "qualitative")
+#separating the trigrams to one word per cell allows the stop words to be edited out and the count the number of occurrences
+trigrams_separated <- deptrigrams %>%
+  separate(trigram, c("word1","word2","word3"), sep = " ")
+trigrams_filtered <- trigrams_separated %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>%
+  filter(!word3 %in% stop_words$word) %>%
+  filter(!word1 %in% customstopwords) %>%
+  filter(!word2 %in% customstopwords) %>%
+  filter(!word3 %in% customstopwords)
+```
+#Frequency count of trigrams overall, it is very important to rename the file in the final step so as not to overwrite previous output
+```{r}
+trigram_counts <- trigrams_filtered %>%
+  count(word1, word2, word3, sort = TRUE) %>% unite(trigram, word1, word2, word3, sep = " ")
+#rename the file here for each department
+write.csv(trigram_counts, file="deptrigramcounts.csv", fileEncoding = "UTF-8")
+```
+#Uniting the trigrams here does not include count but does include each instance by year, renaming the file is also important
+```{r}
+trigrams_united <-trigrams_filtered %>%
+  unite(trigram, word1, word2, word3, sep = " ")
+write.csv(trigrams_united, file = "deptrigramsall.csv", fileEncoding = "UTF-8")
+```
+#Generating wordclouds
+```{r}
+library(wordcloud2)
+wc <- data.frame(trigram_counts$trigram, trigram_counts$n)
+wordcloud2(data = wc,color = "random-light", backgroundColor = "#FFFFFF", size = 1, shape = "triangle")
+#The wordcloud2 library has several different options for shapes, colors, and frequency cut off
+```
+
+
